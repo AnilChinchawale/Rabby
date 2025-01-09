@@ -94,6 +94,7 @@ import Safe from '@rabby-wallet/gnosis-sdk';
 import { Chain } from '@debank/common';
 import { isAddress } from 'web3-utils';
 import {
+  ensureChainListValid,
   findChain,
   findChainByEnum,
   findChainByServerID,
@@ -104,7 +105,7 @@ import { createSafeService } from '../utils/safe';
 import { OpenApiService } from '@rabby-wallet/rabby-api';
 import { autoLockService } from '../service/autoLock';
 import { t } from 'i18next';
-import { getWeb3Provider, web3AbiCoder } from './utils';
+import { broadcastChainChanged, getWeb3Provider, web3AbiCoder } from './utils';
 import { CoboSafeAccount } from '@/utils/cobo-agrus-sdk/cobo-agrus-sdk';
 import CoboArgusKeyring from '../service/keyring/eth-cobo-argus-keyring';
 import { GET_WALLETCONNECT_CONFIG, allChainIds } from '@/utils/walletconnect';
@@ -130,7 +131,6 @@ import { getRecommendGas, getRecommendNonce } from './walletUtils/sign';
 import { waitSignComponentAmounted } from '@/utils/signEvent';
 import pRetry from 'p-retry';
 import Browser from 'webextension-polyfill';
-import SafeApiKit from '@safe-global/api-kit';
 import { hashSafeMessage } from '@safe-global/protocol-kit';
 import { userGuideService } from '../service/userGuide';
 
@@ -1756,6 +1756,8 @@ export class WalletController extends BaseController {
   setAutoSlippage = swapService.setAutoSlippage;
   setIsCustomSlippage = swapService.setIsCustomSlippage;
   setSlippage = swapService.setSlippage;
+  getRecentSwapToTokens = swapService.getRecentSwapToTokens;
+  setRecentSwapToToken = swapService.setRecentSwapToToken;
 
   setRedirect2Points = RabbyPointsService.setRedirect2Points;
   setRabbyPointsSignature = RabbyPointsService.setSignature;
@@ -1781,12 +1783,43 @@ export class WalletController extends BaseController {
   getGasAccountSig = gasAccountService.getGasAccountSig;
   setGasAccountSig = gasAccountService.setGasAccountSig;
 
-  setCustomRPC = RPCService.setRPC;
-  removeCustomRPC = RPCService.removeCustomRPC;
+  setCustomRPC = (chainEnum: CHAINS_ENUM, url: string) => {
+    RPCService.setRPC(chainEnum, url);
+    const chain = findChain({
+      enum: chainEnum,
+    });
+    if (chain?.isTestnet && RPCService.hasCustomRPC(chainEnum)) {
+      customTestnetService.setCustomRPC({ chainId: chain.id, url: url });
+    }
+  };
+  removeCustomRPC = (chainEnum: CHAINS_ENUM) => {
+    RPCService.removeCustomRPC(chainEnum);
+    const chain = findChain({
+      enum: chainEnum,
+    });
+    if (chain?.isTestnet) {
+      customTestnetService.removeCustomRPC(chain.id);
+    }
+  };
   getAllCustomRPC = RPCService.getAllRPC;
   getCustomRpcByChain = RPCService.getRPCByChain;
   pingCustomRPC = RPCService.ping;
-  setRPCEnable = RPCService.setRPCEnable;
+  setRPCEnable = (chainEnum: CHAINS_ENUM, enable: boolean) => {
+    RPCService.setRPCEnable(chainEnum, enable);
+    const chain = findChain({
+      enum: chainEnum,
+    });
+    if (chain?.isTestnet) {
+      if (enable) {
+        customTestnetService.setCustomRPC({
+          chainId: chain.id,
+          url: RPCService.getRPCByChain(chainEnum).url,
+        });
+      } else {
+        customTestnetService.removeCustomRPC(chain.id);
+      }
+    }
+  };
   validateRPC = async (url: string, chainId: number) => {
     const chain = findChain({
       id: chainId,
@@ -1852,24 +1885,10 @@ export class WalletController extends BaseController {
     }
 
     permissionService.setSite(data);
-    if (data.isConnected) {
-      // rabby:chainChanged event must be sent before chainChanged event
-      sessionService.broadcastEvent(
-        'rabby:chainChanged',
-        {
-          ...chainItem,
-        },
-        data.origin
-      );
-      sessionService.broadcastEvent(
-        'chainChanged',
-        {
-          chain: chainItem.hex,
-          networkVersion: chainItem.network,
-        },
-        data.origin
-      );
-    }
+    broadcastChainChanged({
+      origin: data.origin,
+      chain: chainItem,
+    });
   };
 
   updateSiteBasicInfo = async (origin: string | string[]) => {
@@ -1937,22 +1956,11 @@ export class WalletController extends BaseController {
     }
 
     permissionService.updateConnectSite(origin, data);
-    // rabby:chainChanged event must be sent before chainChanged event
-    sessionService.broadcastEvent(
-      'rabby:chainChanged',
-      {
-        ...chainItem,
-      },
-      data.origin
-    );
-    sessionService.broadcastEvent(
-      'chainChanged',
-      {
-        chain: chainItem.hex,
-        networkVersion: chainItem.network,
-      },
-      data.origin
-    );
+
+    broadcastChainChanged({
+      origin: data.origin,
+      chain: chainItem,
+    });
   };
   addConnectedSiteV2 = permissionService.addConnectedSiteV2;
   removeAllRecentConnectedSites = () => {
@@ -2018,7 +2026,7 @@ export class WalletController extends BaseController {
       return Promise.reject(new Error(t('background.error.invalidAddress')));
     }
     return Promise.all(
-      GNOSIS_SUPPORT_CHAINS.map(async (chainEnum) => {
+      ensureChainListValid(GNOSIS_SUPPORT_CHAINS).map(async (chainEnum) => {
         const chain = findChain({ enum: chainEnum });
         try {
           const safe = await createSafeService({
@@ -2514,9 +2522,7 @@ export class WalletController extends BaseController {
     chainId: number;
     messageHash: string;
   }) => {
-    const apiKit = new SafeApiKit({
-      chainId: BigInt(chainId),
-    });
+    const apiKit = Safe.createSafeApiKit(String(chainId));
     return apiKit.getMessage(messageHash);
   };
 
@@ -4783,7 +4789,15 @@ export class WalletController extends BaseController {
     return res;
   };
   updateCustomTestnet = customTestnetService.update;
-  removeCustomTestnet = customTestnetService.remove;
+  removeCustomTestnet = (chainId: number) => {
+    const chain = findChain({
+      id: chainId,
+    });
+    if (chain?.enum) {
+      RPCService.removeCustomRPC(chain.enum);
+    }
+    customTestnetService.remove(chainId);
+  };
   getCustomTestnetList = customTestnetService.getList;
 
   getCustomTestnetNonce = async ({
@@ -4815,6 +4829,7 @@ export class WalletController extends BaseController {
   isAddedCustomTestnetToken = customTestnetService.hasToken;
   getCustomTestnetTx = customTestnetService.getTx;
   getCustomTestnetTxReceipt = customTestnetService.getTransactionReceipt;
+  getCustomTestnetLogos = customTestnetService.fetchLogos;
   // getCustomTestnetTokenListWithBalance = customTestnetService.getTokenListWithBalance;
 
   getUsedCustomTestnetChainList = async () => {
@@ -4911,6 +4926,77 @@ export class WalletController extends BaseController {
   };
 
   uninstalledSyncStatus = uninstalledService.syncStatus;
+
+  gasMarketV2 = async (
+    params:
+      | {
+          chain: Chain;
+          tx: Tx;
+          customGas?: number;
+        }
+      | {
+          chainId: string;
+          customGas?: number;
+        }
+  ) => {
+    let chainId: string;
+    let tx: Tx | undefined;
+
+    if ('tx' in params) {
+      if (params.tx.nonce === undefined) {
+        params.tx.nonce = await this.getRecommendNonce({
+          from: params.tx.from,
+          chainId: params.chain.id,
+        });
+      }
+
+      if (params.tx.gasPrice === undefined || params.tx.gasPrice === '') {
+        params.tx.gasPrice = '0x0';
+      }
+      if (params.tx.gas === undefined || params.tx.gas === '') {
+        params.tx.gas = '0x0';
+      }
+      if (params.tx.data === undefined || params.tx.data === '') {
+        params.tx.data = '0x';
+      }
+      chainId = params.chain.serverId;
+      tx = {
+        chainId: params.tx.chainId,
+        data: params.tx.data,
+        from: params.tx.from,
+        gas: params.tx.gas,
+        nonce: params.tx.nonce,
+        to: params.tx.to,
+        value: params.tx.value,
+        gasPrice: params.tx.gasPrice,
+      };
+    } else {
+      chainId = params.chainId;
+    }
+
+    return openapiService.gasMarketV2({
+      customGas: params.customGas,
+      chainId,
+      tx,
+    });
+  };
+
+  savedUnencryptedKeyringData = async () =>
+    keyringService.savedUnencryptedKeyringData();
+
+  hasEncryptedKeyringData = async () =>
+    keyringService.hasEncryptedKeyringData();
+
+  hasUnencryptedKeyringData = async () =>
+    keyringService.hasUnencryptedKeyringData();
+
+  resetPassword = async (password: string) =>
+    keyringService.resetPassword(password);
+
+  resetBooted = async () => keyringService.resetBooted();
+
+  getUnencryptedKeyringTypes = async () =>
+    keyringService.getUnencryptedKeyringTypes();
 }
 
 const wallet = new WalletController();

@@ -52,6 +52,10 @@ export const ImportWalletList = () => {
           logo: WALLET_BRAND_CONTENT[WALLET_BRAND_TYPES.GRIDPLUS].icon,
         },
         {
+          type: KEYRING_CLASS.HARDWARE.BITBOX02,
+          logo: WALLET_BRAND_CONTENT[WALLET_BRAND_TYPES.BITBOX02].icon,
+        },
+        {
           type: KEYRING_CLASS.GNOSIS,
           logo: WALLET_BRAND_CONTENT[WALLET_BRAND_TYPES.GNOSIS].icon,
         },
@@ -72,6 +76,7 @@ export const ImportWalletList = () => {
       case KEYRING_CLASS.HARDWARE.ONEKEY:
       case KEYRING_CLASS.HARDWARE.TREZOR:
       case KEYRING_CLASS.HARDWARE.GRIDPLUS:
+      case KEYRING_CLASS.HARDWARE.BITBOX02:
         history.push(`/new-user/import/${type}/set-password`);
         break;
       case KEYRING_CLASS.GNOSIS:

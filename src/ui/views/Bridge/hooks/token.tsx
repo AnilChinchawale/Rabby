@@ -7,17 +7,12 @@ import { BridgeQuote, TokenItem } from '@rabby-wallet/rabby-api/dist/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAsyncFn, useDebounce } from 'react-use';
 import useAsync from 'react-use/lib/useAsync';
-import {
-  useQuoteVisible,
-  useRefreshId,
-  useSetQuoteVisible,
-  useSetRefreshId,
-} from './context';
+import { useRefreshId, useSetQuoteVisible, useSetRefreshId } from './context';
 import { getChainDefaultToken, tokenAmountBn } from '@/ui/utils/token';
 import BigNumber from 'bignumber.js';
 import stats from '@/stats';
-import { useBridgeSlippage } from './slippage';
 import { isNaN } from 'lodash';
+import { useBridgeSlippage } from './slippage';
 
 export interface SelectedBridgeQuote extends Omit<BridgeQuote, 'tx'> {
   shouldApproveToken?: boolean;
@@ -234,6 +229,7 @@ export const useBridge = () => {
     switchToChain(fromChain, false);
     setFromToken(toToken);
     setToToken(fromToken);
+    setAmount('');
   }, [
     setFromToken,
     toToken,
@@ -273,6 +269,7 @@ export const useBridge = () => {
     { loading: quoteLoading, error: quotesError },
     getQuoteList,
   ] = useAsyncFn(async () => {
+    fetchIdRef.current += 1;
     if (
       !inSufficient &&
       userAddress &&
@@ -284,7 +281,6 @@ export const useBridge = () => {
       Number(amount) > 0 &&
       aggregatorsList.length > 0
     ) {
-      fetchIdRef.current += 1;
       const currentFetchId = fetchIdRef.current;
 
       let isEmpty = false;
@@ -342,12 +338,12 @@ export const useBridge = () => {
               });
 
             if (alternativeToken) {
-              if (data && currentFetchId === fetchIdRef.current) {
+              if (data?.length && currentFetchId === fetchIdRef.current) {
                 setRecommendFromToken(alternativeToken);
                 return;
               }
             }
-            if (data && currentFetchId === fetchIdRef.current) {
+            if (data?.length && currentFetchId === fetchIdRef.current) {
               originData.push(...data);
             }
             if (currentFetchId === fetchIdRef.current) {

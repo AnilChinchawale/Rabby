@@ -7,7 +7,7 @@ import { SelectChainListProps } from '@/ui/component/ChainSelector/components/Se
 import ChainSelectorModal from '@/ui/component/ChainSelector/Modal';
 import styled from 'styled-components';
 import ChainIcon from '@/ui/component/ChainIcon';
-import { ReactComponent as RcImgArrowDown } from '@/ui/assets/swap/arrow-down.svg';
+import { ReactComponent as RcImgArrowDownCC } from '@/ui/assets/swap/arrow-down-cc.svg';
 import { useWallet } from '@/ui/utils';
 import { findChain } from '@/utils/chain';
 import { useTranslation } from 'react-i18next';
@@ -25,12 +25,12 @@ const ChainWrapper = styled.div`
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  &.mini {
+  &.bridge {
     width: auto;
     height: 28px;
     font-size: 13px;
-    padding: 0 6px;
-
+    padding: 0 8px;
+    gap: 0;
     & > {
       .down {
         margin-left: auto;
@@ -40,17 +40,51 @@ const ChainWrapper = styled.div`
       .name {
         color: var(--r-neutral-title-1, #192945);
         line-height: normal;
+        margin-left: 6px;
+        margin-right: 4px;
       }
     }
   }
+  &.swap {
+    gap: 8px;
+    padding: 0 16px;
+    border: 0.5px solid transparent;
+    background: var(--r-neutral-card1, #fff);
+    border-radius: 8px;
+    height: 44px;
+    position: relative;
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border-radius: 8px;
+      border: 0.5px solid var(--r-neutral-line, #e0e5ec);
+    }
+
+    &:hover {
+      &::before {
+        border: 1px solid var(--r-blue-default, #7084ff);
+      }
+    }
+
+    & > .name {
+      color: var(--r-neutral-title-1, #192945);
+      font-size: 15px;
+    }
+  }
   &:hover {
-    background: rgba(134, 151, 255, 0.2);
+    background: var(--r-blue-light1, #eef1ff);
   }
   & > {
     .down {
       margin-left: auto;
       width: 20px;
       height: 20px;
+      color: var(--r-neutral-body, #3e495e);
     }
     .name {
       color: var(--r-neutral-title-1, #192945);
@@ -64,13 +98,15 @@ export const ChainRender = ({
   readonly,
   className,
   arrowDownComponent,
-  mini,
+  bridge,
+  swap,
   ...other
 }: {
   chain?: CHAINS_ENUM;
   readonly: boolean;
   arrowDownComponent?: React.ReactNode;
-  mini?: boolean;
+  bridge?: boolean;
+  swap?: boolean;
 } & InsHTMLAttributes<HTMLDivElement>) => {
   const wallet = useWallet();
   const { t } = useTranslation();
@@ -89,24 +125,32 @@ export const ChainRender = ({
   useEffect(() => {
     getCustomRPC();
   }, [chain]);
+
   return (
     <ChainWrapper
       className={clsx(
         {
           'cursor-default hover:bg-r-neutral-bg-2': readonly,
-          mini: mini,
+          bridge,
+          swap,
         },
         className
       )}
       {...other}
     >
-      {/* <img className="logo" src={CHAINS[chain].logo} alt={CHAINS[chain].name} /> */}
       {chain && (
         <ChainIcon
           chain={chain}
           customRPC={customRPC}
-          size="small"
+          size={'small'}
+          innerClassName={clsx(
+            bridge && 'w-[16px] h-[16px]',
+            swap && 'w-[18px] h-[18px]'
+          )}
           showCustomRPCToolTip
+          tooltipProps={{
+            visible: swap || bridge ? false : undefined,
+          }}
         />
       )}
       <span className={clsx('name')}>
@@ -117,7 +161,7 @@ export const ChainRender = ({
         (arrowDownComponent ? (
           arrowDownComponent
         ) : (
-          <RcImgArrowDown className="down" viewBox="0 0 20 20" />
+          <RcImgArrowDownCC className="down" viewBox="0 0 16 16" />
         ))}
     </ChainWrapper>
   );
@@ -134,11 +178,12 @@ interface ChainSelectorProps {
   title?: React.ReactNode;
   chainRenderClassName?: string;
   arrowDownComponent?: React.ReactNode;
-  mini?: boolean;
+  bridge?: boolean;
   hideTestnetTab?: boolean;
   excludeChains?: CHAINS_ENUM[];
   drawerHeight?: number;
   showClosableIcon?: boolean;
+  swap?: boolean;
 }
 export default function ChainSelectorInForm({
   value,
@@ -150,11 +195,12 @@ export default function ChainSelectorInForm({
   supportChains,
   chainRenderClassName,
   arrowDownComponent,
-  mini,
+  bridge,
   hideTestnetTab = false,
   excludeChains,
   drawerHeight,
   showClosableIcon,
+  swap,
 }: ChainSelectorProps) {
   const [showSelectorModal, setShowSelectorModal] = useState(showModal);
 
@@ -182,7 +228,8 @@ export default function ChainSelectorInForm({
         readonly={readonly}
         className={chainRenderClassName}
         arrowDownComponent={arrowDownComponent}
-        mini={mini}
+        bridge={bridge}
+        swap={swap}
       />
       {!readonly && (
         <ChainSelectorModal

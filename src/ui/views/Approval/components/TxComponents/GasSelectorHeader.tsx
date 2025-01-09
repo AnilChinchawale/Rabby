@@ -1,7 +1,7 @@
 import { Button, Input, Skeleton, Tooltip } from 'antd';
 import { matomoRequestEvent } from '@/utils/matomo-request';
 import { ValidateStatus } from 'antd/lib/form/FormItem';
-import { GasLevel, TxPushType } from 'background/service/openapi';
+import { GasLevel, Tx, TxPushType } from 'background/service/openapi';
 import BigNumber from 'bignumber.js';
 import clsx from 'clsx';
 import {
@@ -25,6 +25,7 @@ import {
   formatGasCostUsd,
   formatTokenAmount,
   formatGasHeaderUsdValue,
+  formatGasAccountUSDValue,
 } from '@/ui/utils/number';
 import { calcMaxPriorityFee } from '@/utils/transaction';
 import styled, { css } from 'styled-components';
@@ -57,6 +58,7 @@ export interface GasSelectorResponse extends GasLevel {
 }
 
 interface GasSelectorProps {
+  tx: Tx;
   gasLimit: string | undefined;
   gas: {
     gasCostUsd: number | string | BigNumber;
@@ -297,6 +299,7 @@ const GasSelectorHeader = ({
   gasMethod,
   gasAccountCost,
   onChangeGasMethod,
+  tx,
 }: GasSelectorProps) => {
   const wallet = useWallet();
   const dispatch = useRabbyDispatch();
@@ -349,10 +352,11 @@ const GasSelectorHeader = ({
 
   const loadCustomGasData = useCallback(
     async (custom?: number): Promise<GasLevel> => {
-      const list = await wallet.openapi.gasMarket(
-        chain.serverId,
-        custom && custom > 0 ? custom : undefined
-      );
+      const list = await wallet.gasMarketV2({
+        chain,
+        customGas: custom && custom > 0 ? custom : undefined,
+        tx,
+      });
       return list.find((item) => item.level === 'custom')!;
     },
     []
@@ -729,7 +733,7 @@ const GasSelectorHeader = ({
     if (!Number.isNaN(v) && v < 0.0001) {
       return `$${n}`;
     }
-    return formatGasHeaderUsdValue(n || '0');
+    return formatGasAccountUSDValue(n || '0');
   }, []);
 
   const [isGasHovering, gasHoverProps] = useHover();
@@ -816,7 +820,7 @@ const GasSelectorHeader = ({
                 >
                   <div className="truncate max-w-[170px] group text-r-neutral-body">
                     <span className="text-[16px] font-medium text-r-blue-default">
-                      {formatGasHeaderUsdValue(
+                      {formatGasAccountUSDValue(
                         (gasAccountCost?.gas_account_cost.estimate_tx_cost ||
                           0) + (gasAccountCost?.gas_account_cost.gas_cost || 0)
                       )}
@@ -831,7 +835,7 @@ const GasSelectorHeader = ({
                     </span>
                   </div>
                   <Tooltip
-                    overlayClassName="rectangle"
+                    overlayClassName="rectangle max-w-max"
                     visible={isGasAccountHovering}
                     title={
                       <>

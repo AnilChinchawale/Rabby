@@ -6,7 +6,12 @@ import BigNumber from 'bignumber.js';
 import { useWallet } from '@/ui/utils';
 import clsx from 'clsx';
 import { QuoteList } from './BridgeQuotes';
-import { useQuoteVisible, useSetQuoteVisible, useSetRefreshId } from '../hooks';
+import {
+  useQuoteVisible,
+  useSetQuoteVisible,
+  useSetRefreshId,
+  useSetSettingVisible,
+} from '../hooks';
 import { useRbiSource } from '@/ui/utils/ga-event';
 import { useCss } from 'react-use';
 import { findChainByEnum } from '@/utils/chain';
@@ -79,6 +84,10 @@ export const BridgeContent = () => {
 
   const refresh = useSetRefreshId();
 
+  const [maxNativeTokenGasPrice, setMaxNativeTokenGasPrice] = useState<
+    number | undefined
+  >(undefined);
+
   const { t } = useTranslation();
 
   const btnText = useMemo(() => {
@@ -144,6 +153,7 @@ export const BridgeContent = () => {
             shouldTwoStepApprove: !!selectedBridgeQuote.shouldTwoStepApprove,
             payTokenId: fromToken.id,
             payTokenChainServerId: fromToken.chain,
+            gasPrice: maxNativeTokenGasPrice,
             info: {
               aggregator_id: selectedBridgeQuote.aggregator.id,
               bridge_id: selectedBridgeQuote.bridge_id,
@@ -196,6 +206,7 @@ export const BridgeContent = () => {
     amount,
     rbiSource,
     slippageState,
+    maxNativeTokenGasPrice,
   ]);
 
   const buildTxs = useMemoizedFn(async () => {
@@ -248,6 +259,7 @@ export const BridgeContent = () => {
             shouldTwoStepApprove: !!selectedBridgeQuote.shouldTwoStepApprove,
             payTokenId: fromToken.id,
             payTokenChainServerId: fromToken.chain,
+            gasPrice: maxNativeTokenGasPrice,
             info: {
               aggregator_id: selectedBridgeQuote.aggregator.id,
               bridge_id: selectedBridgeQuote.bridge_id,
@@ -299,6 +311,9 @@ export const BridgeContent = () => {
 
   const handleBridge = useMemoizedFn(async () => {
     if (
+      !toToken?.low_credit_score &&
+      !isSlippageHigh &&
+      !isSlippageLow &&
       [
         KEYRING_TYPE.SimpleKeyring,
         KEYRING_TYPE.HdKeyring,
@@ -356,6 +371,12 @@ export const BridgeContent = () => {
 
   const [showMoreOpen, setShowMoreOpen] = useState(false);
 
+  const switchFeePopup = useSetSettingVisible();
+
+  const openFeePopup = useCallback(() => {
+    switchFeePopup(true);
+  }, [switchFeePopup]);
+
   return (
     <div
       className={clsx(
@@ -373,6 +394,8 @@ export const BridgeContent = () => {
           value={amount}
           onInputChange={handleAmountChange}
           excludeChains={toChain ? [toChain] : undefined}
+          inSufficient={inSufficient}
+          handleSetGasPrice={setMaxNativeTokenGasPrice}
         />
         <BridgeToken
           type="to"
@@ -392,9 +415,37 @@ export const BridgeContent = () => {
         </div>
       </div>
 
-      <div className="mx-20">
+      {inSufficient || (noQuote && !recommendFromToken) ? (
+        <Alert
+          className={clsx(
+            'mx-[20px] rounded-[4px] px-0 py-[3px] bg-transparent mt-6'
+          )}
+          icon={
+            <RcIconWarningCC
+              viewBox="0 0 16 16"
+              className={clsx(
+                'relative top-[3px] mr-2 self-start origin-center w-16 h-15',
+                'text-rabby-red-default'
+              )}
+            />
+          }
+          banner
+          message={
+            <span
+              className={clsx('text-13 font-medium', 'text-rabby-red-default')}
+            >
+              {inSufficient
+                ? t('page.bridge.insufficient-balance')
+                : t('page.bridge.no-quote-found')}
+            </span>
+          }
+        />
+      ) : null}
+
+      <div className="mx-20 mt-20">
         {selectedBridgeQuote && (
           <BridgeShowMore
+            openFeePopup={openFeePopup}
             open={showMoreOpen}
             setOpen={setShowMoreOpen}
             sourceName={selectedBridgeQuote?.aggregator.name || ''}
@@ -416,6 +467,13 @@ export const BridgeContent = () => {
             isCustomSlippage={isCustomSlippage}
             setAutoSlippage={setAutoSlippage}
             setIsCustomSlippage={setIsCustomSlippage}
+            type="bridge"
+            isBestQuote={
+              !!bestQuoteId &&
+              !!selectedBridgeQuote &&
+              bestQuoteId?.aggregatorId === selectedBridgeQuote.aggregator.id &&
+              bestQuoteId?.bridgeId === selectedBridgeQuote.bridge_id
+            }
           />
         )}
         {noQuote && recommendFromToken && (
@@ -426,33 +484,6 @@ export const BridgeContent = () => {
           />
         )}
       </div>
-
-      {inSufficient || (noQuote && !recommendFromToken) ? (
-        <Alert
-          className={clsx(
-            'mx-[20px] rounded-[4px] px-0 py-[3px] bg-transparent mt-6'
-          )}
-          icon={
-            <RcIconWarningCC
-              viewBox="0 0 16 16"
-              className={clsx(
-                'relative top-[3px] mr-2 self-start origin-center w-16 h-15',
-                'text-red-forbidden'
-              )}
-            />
-          }
-          banner
-          message={
-            <span
-              className={clsx('text-13 font-medium', 'text-rabby-red-default')}
-            >
-              {inSufficient
-                ? t('page.bridge.insufficient-balance')
-                : t('page.bridge.no-quote-found')}
-            </span>
-          }
-        />
-      ) : null}
 
       <div
         className={clsx(

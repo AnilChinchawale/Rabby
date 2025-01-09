@@ -829,7 +829,8 @@
         "ledgerSended": "Please sign the request on Ledger ({{current}}/{{total}})",
         "ledgerSending": "Sending signing request ({{current}}/{{total}})",
         "ledgerAlert": "Please open Ethereum App on your Ledger device",
-        "ledgerSigned": "Signed. Creating transaction ({{current}}/{{total}})"
+        "ledgerSigned": "Signed. Creating transaction ({{current}}/{{total}})",
+        "simulationFailed": "Simulation Failed"
       }
     },
     "gasTopUp": {
@@ -872,15 +873,18 @@
       "price-expired-refresh-quote": "Price expired. Refresh quote.",
       "approve-x-symbol": "Approve {{symbol}}",
       "approve-and-swap": "Approve and Swap via {{name}}",
+      "approve-swap": "Approve and Swap",
       "swap-via-x": "Swap via {{name}}",
       "get-quotes": "Get quotes",
       "chain": "Chain",
       "swap-from": "Swap from",
+      "from": "From",
       "to": "To",
       "search-by-name-address": "Search by Name / Address",
       "amount-in": "Amount in {{symbol}}",
       "unlimited-allowance": "Unlimited allowance",
       "insufficient-balance": "Insufficient balance",
+      "no-fee-for-wrap": "No Rabby fee for Wrap",
       "hidden-no-quote-rates_one": "{{count}} rate unavailable",
       "hidden-no-quote-rates_other": "{{count}} rates unavailable",
       "Gas-fee-too-high": "Gas fee too high",
@@ -938,11 +942,13 @@
       "process-with-two-step-approve": "Proceed with two step approve",
       "fetch-best-quote": "Fetching the Best quote",
       "usd-after-fees": "≈ {{usd}} ",
-      "no-fees-for-wrap": "No Rabby fees for Wrap",
+      "no-fees-for-wrap": "No Rabby fee for Wrap",
       "No-available-quote": "No available quote",
       "price-impact": "Price Impact",
       "loss-tips": "You're losing {{usd}}. Try a smaller amount in a small market.",
       "Auto": "Auto",
+      "no-quote-found": "No quote found",
+      "source": "Source",
       "rabbyFee": {
         "title": "Rabby fee",
         "swapDesc": "Rabby Wallet will always find the best possible rate from top aggregators and verify the reliability of their offers. Rabby charges a 0.25% fee (0% for wrapping), which is automatically included in the quote.",
@@ -1005,6 +1011,7 @@
       "est-difference": "Est. Difference:",
       "loss-tips": "You're losing {{usd}}. Try a different amount.",
       "price-impact": "Price Impact",
+      "max-tips": "This value is calculated by subtracting the gas cost for bridge.",
       "showMore": {
         "title": "Show More",
         "source": "Bridge Source"
@@ -1422,6 +1429,7 @@
         "description": "Importing multiple QR-based hardware wallets is not supported. Please delete all addresses from {{0}} before importing another device."
       },
       "connectHardwareWallets": "Connect Hardware Wallets",
+      "firefoxLedgerDisableTips": "Ledger is not compatible with Firefox",
       "connectMobileWalletApps": "Connect Mobile Wallet Apps",
       "connectInstitutionalWallets": "Connect Institutional Wallets",
       "createNewSeedPhrase": "Create New Seed Phrase",
@@ -1518,6 +1526,10 @@
           "ethereum_app_open_error": "Please install/accept Ethereum app on your Ledger device.",
           "running_app_close_error": "Failed to close the running app on your Ledger device."
         }
+      },
+      "imkey": {
+        "title": "Connect imKey",
+        "imkeyPermissionTip": "Please click \"Allow\" below and authorize access to your imKey in the following pop-up window."
       },
       "keystone": {
         "title": "Connect Keystone",
@@ -1719,9 +1731,6 @@
         "findTheAssociatedSafeAddress": "Find the associated safe address",
         "import": "Import"
       },
-      "imkey": {
-        "title": "Connect imKey"
-      },
       "addFromCurrentSeedPhrase": "Add from Current Seed Phrase"
     },
     "unlock": {
@@ -1732,7 +1741,10 @@
         "required": "Enter the Password to Unlock",
         "placeholder": "Enter the Password to Unlock",
         "error": "incorrect password"
-      }
+      },
+      "title": "Rabby Wallet",
+      "description": "The game-changing wallet for Ethereum and all EVM chains",
+      "btnForgotPassword": "Forgot Password?"
     },
     "addToken": {
       "noTokenFound": "No token found",
@@ -2267,6 +2279,7 @@
       "title": "GasAccount",
       "deposit": "Deposit",
       "withdraw": "Withdraw",
+      "noBalance": "No balance",
       "gasExceed": "GasAccount balance cannot exceed $1000",
       "risk": "Your current address has been detected as risky, so this feature is unavailable.",
       "logout": "Log out current GasAccount",
@@ -2285,21 +2298,33 @@
       },
       "logoutConfirmModal": {
         "title": "Log out current GasAccount",
-        "desc": "Once logged out, you will no longer be able to use GasAccount to pay for gas fees.",
+        "desc": "Logging out disables GasAccount. You can restore your GasAccount by logging in with this address.",
         "logout": "Log out"
       },
       "depositPopup": {
         "title": "Deposit",
         "desc": "Make a deposit to Rabby's DeBank L2 Account with no extra fees—withdraw anytime.",
+        "invalidAmount": "Must be under 500",
         "amount": "Amount",
         "token": "Token",
         "selectToken": "Select Token to Deposit"
       },
       "withdrawPopup": {
+        "noEnoughValuetBalance": "Vault Balance insufficient. Switch chain or try again later.",
+        "noEnoughGas":"Amount too low to cover gas fees",
+        "riskMessageFromChain": "Due to risk control, the withdrawal limit depends on the total amount deposited from this chain.",
+        "riskMessageFromAddress": "Due to risk control, the withdrawal limit depends on the total amount this address has deposited",
+        "selectDestinationChain":"Select destination chain",
+        "selectRecipientAddress": "Select recipient address",
+        "withdrawalLimit": "Withdrawal limit",
         "title": "Withdraw",
         "desc": "You can withdraw your GasAccount balance to your DeBank L2 Wallet. Log in to your DeBank L2 Wallet to transfer the funds to a supported blockchain as needed.",
         "amount": "Amount",
-        "to": "To"
+        "to": "To",
+        "selectChain": "Select Chain",
+        "recipientAddress": "Recipient address",
+        "destinationChain": "Destination chain",
+        "deductGasFees": "Received amount will deduct gas fees"
       },
       "withdrawConfirmModal": {
         "title": "Transferred to your DeBank L2 Wallet",
@@ -2401,6 +2426,13 @@
         "tip3": "Open the Ethereum app.",
         "connect": "Connect Ledger"
       },
+      "importBitBox02": {
+        "title": "BitBox02",
+        "tip1": "1. Install the <1>BitBoxBridge<1/>",
+        "tip2": "2. Plug in your BitBox02",
+        "tip3": "3. Unlock your device",
+        "connect": "Connect BitBox02"
+      },
       "importKeystone": {
         "qrcode": {
           "desc": "Scan the QR code on the Keystone hardware wallet"
@@ -2421,6 +2453,45 @@
         },
         "placeholder": "Input safe address",
         "loading": "Searching the deployed chain of this address"
+      }
+    },
+    "forgotPassword": {
+      "home": {
+        "title": "Forgot Password",
+        "description": "Rabby Wallet doesn't store your password and can't help you retrieve it. Reset your wallet to set up a new one.",
+        "button": "Begin Reset Process",
+        "descriptionNoData": "Rabby Wallet doesn't store your password and can't help you retrieve it. Set a new password if you forgot",
+        "buttonNoData": "Set Password"
+      },
+      "reset": {
+        "title": "Reset Rabby Wallet",
+        "button": "Confirm Reset",
+        "alert": {
+          "title": "Data will be deleted and unrecoverable:",
+          "seed": "Seed Phrase",
+          "privateKey": "Private Key"
+        },
+        "tip": {
+          "title": "Data will be kept:",
+          "hardware": "Imported Hardware Wallets",
+          "whitelist": "Whitelist Settings",
+          "records": "Signature Records",
+          "safe": "Imported Safe Wallets",
+          "watch": "Contacts and Watch-Only Addresses"
+        },
+        "confirm": "Type <1>RESET</1> in the box to confirm and proceed"
+      },
+      "tip": {
+        "title": "Rabby Wallet Reset Completed",
+        "description": "Create a new password to continue",
+        "button": "Set Password",
+        "descriptionNoData": "Add your address to get started",
+        "buttonNoData": "Add Address"
+      },
+      "success": {
+        "title": "Password Successfully Set",
+        "description": "You're all set to use Rabby Wallet",
+        "button": "Done"
       }
     }
   },
@@ -2546,7 +2617,9 @@
       },
       "noTokens": "No Tokens",
       "noMatch": "No Match",
-      "noMatchSuggestion": "Try to search contract address on {{ chainName }}"
+      "noMatchSuggestion": "Try to search contract address on {{ chainName }}",
+      "hot": "Hot",
+      "recent": "Recent"
     },
     "ModalPreviewNFTItem": {
       "FieldLabel": {

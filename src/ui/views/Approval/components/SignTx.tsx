@@ -564,6 +564,7 @@ const SignTx = ({ params, origin }: SignTxProps) => {
     isCancel,
     isSend,
     isSwap,
+    isBridge,
     swapPreferMEVGuarded,
     isViewGnosisSafe,
     reqId,
@@ -1339,10 +1340,11 @@ const SignTx = ({ params, origin }: SignTxProps) => {
     chain: Chain,
     custom?: number
   ): Promise<GasLevel[]> => {
-    const list = await wallet.openapi.gasMarket(
-      chain.serverId,
-      custom && custom > 0 ? custom : undefined
-    );
+    const list = await wallet.gasMarketV2({
+      chain,
+      customGas: custom && custom > 0 ? custom : undefined,
+      tx,
+    });
     setGasList(list);
     return list;
   };
@@ -1595,6 +1597,7 @@ const SignTx = ({ params, origin }: SignTxProps) => {
         source: params?.$ctx?.ga?.source || '',
         trigger: params?.$ctx?.ga?.trigger || '',
         networkType: chain?.isTestnet ? 'Custom Network' : 'Integrated Network',
+        swapUseSlider: params?.$ctx?.ga?.swapUseSlider ?? '',
       });
 
       matomoRequestEvent({
@@ -1621,7 +1624,11 @@ const SignTx = ({ params, origin }: SignTxProps) => {
         // use cached gasPrice if exist
         customGasPrice = lastTimeGas.gasPrice;
       }
-      if (isSpeedUp || isCancel || ((isSend || isSwap) && tx.gasPrice)) {
+      if (
+        isSpeedUp ||
+        isCancel ||
+        ((isSend || isSwap || isBridge) && tx.gasPrice)
+      ) {
         // use gasPrice set by dapp when it's a speedup or cancel tx
         customGasPrice = parseInt(tx.gasPrice!);
       }
@@ -1630,7 +1637,7 @@ const SignTx = ({ params, origin }: SignTxProps) => {
       let gas: GasLevel | null = null;
 
       if (
-        ((isSend || isSwap) && customGasPrice) ||
+        ((isSend || isSwap || isBridge) && customGasPrice) ||
         isSpeedUp ||
         isCancel ||
         lastTimeGas?.lastTimeSelect === 'gasPrice'
@@ -1996,6 +2003,7 @@ const SignTx = ({ params, origin }: SignTxProps) => {
           <FooterBar
             Header={
               <GasSelectorHeader
+                tx={tx}
                 gasAccountCost={gasAccountCost}
                 gasMethod={gasMethod}
                 onChangeGasMethod={setGasMethod}

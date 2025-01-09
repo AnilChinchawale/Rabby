@@ -109,6 +109,9 @@ import {
   ReactComponent as RcLogoLedgerDark,
   ReactComponent as RcLogoLedgerWhite,
 } from 'ui/assets/walletlogo/ledger.svg';
+import LogoLedgerDisable, {
+  ReactComponent as RcLogoLedgerDisable,
+} from 'ui/assets/walletlogo/ledgerDisable.svg';
 import {
   default as IconMath,
   default as LogoMath,
@@ -558,6 +561,8 @@ export type IWalletBrandContent = {
   brand: WALLET_BRAND_TYPES;
   icon: string;
   lightIcon: string;
+  // Icon showed out of collapse
+  leftIcon?: string;
   image: string;
   rcSvg: Exclude<ThemeIconType, string>;
   /**
@@ -570,6 +575,8 @@ export type IWalletBrandContent = {
   connectType: BRAND_WALLET_CONNECT_TYPE;
   category: WALLET_BRAND_CATEGORY;
   hidden?: boolean;
+  preventClick?: boolean;
+  tipI18nKey?: string;
 };
 
 export const WALLET_BRAND_CONTENT: {
@@ -739,11 +746,14 @@ export const WALLET_BRAND_CONTENT: {
     brand: WALLET_BRAND_TYPES.LEDGER,
     icon: LogoLedgerWhite,
     lightIcon: LogoLedgerWhite,
-    image: LogoLedgerDark,
-    rcSvg: RcLogoLedgerDark,
+    leftIcon: LogoLedgerDark,
+    image: IS_FIREFOX ? LogoLedgerDisable : LogoLedgerDark,
+    rcSvg: IS_FIREFOX ? RcLogoLedgerDisable : RcLogoLedgerDark,
     maybeSvg: LogoLedgerDark,
     connectType: BRAND_WALLET_CONNECT_TYPE.LedgerConnect,
     category: WALLET_BRAND_CATEGORY.HARDWARE,
+    preventClick: IS_FIREFOX,
+    tipI18nKey: IS_FIREFOX ? 'page.newAddress.firefoxLedgerDisableTips' : '',
   },
   [WALLET_BRAND_TYPES.MATHWALLET]: {
     id: 5,
@@ -1367,7 +1377,7 @@ export const BRAND_ALIAN_TYPE_TEXT = {
   [KEYRING_CLASS.HARDWARE.IMKEY]: 'imKey',
 };
 
-export const GNOSIS_SUPPORT_CHAINS = ensureChainListValid([
+export const GNOSIS_SUPPORT_CHAINS = [
   CHAINS_ENUM.ETH,
   CHAINS_ENUM.BSC,
   CHAINS_ENUM.POLYGON,
@@ -1383,7 +1393,11 @@ export const GNOSIS_SUPPORT_CHAINS = ensureChainListValid([
   CHAINS_ENUM.SCRL,
   CHAINS_ENUM.LINEA,
   'XLAYER',
-]);
+  CHAINS_ENUM.MANTLE,
+  'WORLD',
+  CHAINS_ENUM.BLAST,
+  'SONIC',
+];
 
 export const COBO_ARGUS_SUPPORT_CHAINS = ensureChainListValid([
   CHAINS_ENUM.ETH,

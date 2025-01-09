@@ -1,5 +1,7 @@
 import BigNumber from 'bignumber.js';
 
+const Sub_Numbers = '₀₁₂₃₄₅₆₇₈₉';
+
 export const splitNumberByStep = (
   num: number | string,
   step = 3,
@@ -68,7 +70,7 @@ export const formatNumber = (
   num: string | number,
   decimal = 2,
   opt = {} as BigNumber.Format,
-  roundingMode = BigNumber.ROUND_UP as BigNumber.RoundingMode
+  roundingMode = BigNumber.ROUND_HALF_UP as BigNumber.RoundingMode
 ) => {
   const n = new BigNumber(num);
   const format = {
@@ -105,7 +107,20 @@ export const formatPrice = (price: string | number) => {
   // @ts-expect-error
   if (price < 0.00001) {
     if (price.toString().length > 10) {
-      return Number(price).toExponential(4);
+      const s = new BigNumber(price).precision(4).toFormat();
+      const ss = s.replace(/^0.(0*)?(?:.*)/, (l, z) => {
+        const zeroLength = z.length;
+
+        const sub = `${zeroLength}`
+          .split('')
+          .map((x) => Sub_Numbers[x as any])
+          .join('');
+
+        const end = s.slice(zeroLength + 2);
+        return `0.0${sub}${end}`;
+      });
+
+      return ss;
     }
     return price.toString();
   }
@@ -119,7 +134,7 @@ export const intToHex = (n: number) => {
 
 export const formatUsdValue = (
   value: string | number,
-  roundingMode = BigNumber.ROUND_UP as BigNumber.RoundingMode
+  roundingMode = BigNumber.ROUND_HALF_UP as BigNumber.RoundingMode
 ) => {
   const bnValue = new BigNumber(value);
   if (bnValue.lt(0)) {
@@ -212,7 +227,7 @@ export const formatGasCostUsd = (gasCostUsd: BigNumber) => {
 
 export const formatGasHeaderUsdValue = (
   value: string | number,
-  roundingMode = BigNumber.ROUND_UP as BigNumber.RoundingMode
+  roundingMode = BigNumber.ROUND_HALF_UP as BigNumber.RoundingMode
 ) => {
   const bnValue = new BigNumber(value);
   if (bnValue.lt(0)) {
@@ -224,4 +239,10 @@ export const formatGasHeaderUsdValue = (
   if (bnValue.lt(0.0001)) return '<$0.0001';
 
   return `$${formatNumber(value, 4, undefined, roundingMode)}`;
+};
+
+export const formatGasAccountUSDValue = (value: string | number) => {
+  const bnValue = new BigNumber(value);
+  if (bnValue.lt(0.0001)) return '<$0.0001';
+  return `$${formatNumber(value, 4)}`;
 };

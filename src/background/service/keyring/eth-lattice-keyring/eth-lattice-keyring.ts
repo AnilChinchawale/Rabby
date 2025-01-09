@@ -11,6 +11,7 @@ import {
   KnownOrigins,
   OffscreenCommunicationTarget,
 } from '@/constant/offscreen-communication';
+import Browser from 'webextension-polyfill';
 
 const HD_PATH_BASE = {
   [HDPathType.BIP44]: "m/44'/60'/0'/0/x",
@@ -23,6 +24,8 @@ const HD_PATH_TYPE = {
   [HD_PATH_BASE[HDPathType.Legacy]]: HDPathType.Legacy,
   [HD_PATH_BASE[HDPathType.LedgerLive]]: HDPathType.LedgerLive,
 };
+
+let callStackCounter = 0;
 
 class LatticeKeyring extends OldLatticeKeyring {
   [x: string]: any;
@@ -46,29 +49,16 @@ class LatticeKeyring extends OldLatticeKeyring {
 
       // send a msg to the render process to open lattice connector
       // and collect the credentials
-      const creds = await new Promise<{
-        deviceID: string;
-        password: string;
-        endpoint: string;
-      }>((resolve, reject) => {
-        chrome.runtime.sendMessage(
-          {
-            target: OffscreenCommunicationTarget.latticeOffscreen,
-            params: {
-              url,
-            },
-          },
-          (response) => {
-            if (response.error) {
-              reject(response.error);
-            }
-
-            resolve(response.result);
-          }
-        );
+      const credsResult = await Browser.runtime.sendMessage({
+        target: OffscreenCommunicationTarget.latticeOffscreen,
+        params: {
+          url,
+        },
       });
-
-      return creds;
+      if (credsResult.error) {
+        throw new Error(credsResult.error);
+      }
+      return credsResult.result;
     } catch (err: any) {
       throw new Error(err);
     }
@@ -104,6 +94,7 @@ class LatticeKeyring extends OldLatticeKeyring {
           index: start + i + 1,
         };
       });
+      callStackCounter = 0;
       return accounts;
     } catch (err) {
       // This will get hit for a few reasons. Here are two possibilities:
@@ -113,6 +104,8 @@ class LatticeKeyring extends OldLatticeKeyring {
       // In either event we should try to resync the wallet and if that
       // fails throw an error
       try {
+        if (callStackCounter > 20) throw new Error('Max call stacks');
+        callStackCounter++;
         await this._connect();
         return this.getAddresses(start, end);
       } catch (err) {

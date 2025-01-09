@@ -53,8 +53,6 @@ export const BridgeQuoteItem = (props: QuoteItemProps) => {
 
   const openSwapQuote = useSetQuoteVisible();
 
-  const openFeePopup = useSetSettingVisible();
-
   const aggregatorsList = useRabbySelector(
     (s) => s.bridge.aggregatorsList || []
   );
@@ -208,13 +206,6 @@ export const BridgeQuoteItem = (props: QuoteItemProps) => {
                 ),
               })}
             </span>
-            <RcIconInfo
-              className="text-rabby-neutral-foot w-14 h-14"
-              onClick={(e) => {
-                e.stopPropagation();
-                openFeePopup(true);
-              }}
-            />
           </div>
         </div>
 
@@ -225,7 +216,7 @@ export const BridgeQuoteItem = (props: QuoteItemProps) => {
               'rounded-tl-[4px] rounded-br-[4px] px-[6px] py-[1px]',
               'text-12 font-medium',
               props.isBestQuote
-                ? 'text-r-green-default bg-r-green-light'
+                ? 'text-r-blue-default bg-light-r-blue-light2'
                 : 'text-r-red-default bg-r-red-light'
             )}
           >
